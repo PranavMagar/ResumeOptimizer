@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: ai-resume-optimizer-backend
+    runtime: node
+    buildCommand: npm install && npm run build
+    startCommand: node dist/index.js
+    envVars:
+      - key: OPENAI_API_KEY
+        sync: false  # marked as secret — set manually in Render dashboard
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3001
