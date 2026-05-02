@@ -7,18 +7,6 @@ import { SubmitButton } from '../components/SubmitButton';
 import { ErrorBanner } from '../components/ErrorBanner';
 import { LoadingOverlay } from '../components/LoadingOverlay';
 
-/**
- * UploadPage — entry point of the application.
- *
- * Manages file selection, validation feedback, and submission.
- * On success, navigates to /results with the ApiResponse in router state.
- *
- * Requirements: 8.1, 8.2, 8.7, 8.8
- * - Accepts PDF/DOCX, rejects others client-side (8.1)
- * - Shows loading indicator while processing (8.2)
- * - Displays specific rejection reason on validation failure (8.7)
- * - Does NOT store file or contents in localStorage/sessionStorage (8.8)
- */
 export function UploadPage() {
   const navigate = useNavigate();
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -37,7 +25,6 @@ export function UploadPage() {
 
   async function handleAnalyze() {
     if (!selectedFile) return;
-
     setIsLoading(true);
     setValidationError(null);
 
@@ -57,7 +44,6 @@ export function UploadPage() {
       }
 
       const data = await response.json();
-      // Navigate to results with ApiResponse in router state (Req 8.3–8.5)
       navigate('/results', { state: { result: data } });
     } catch {
       setValidationError('An unexpected error occurred. Please try again.');
@@ -66,29 +52,36 @@ export function UploadPage() {
     }
   }
 
-  const displayError = validationError;
-
   return (
-    <div className="upload-page">
-      <Header />
+    <div className="min-h-screen bg-slate-950 flex flex-col">
+      {/* Background glow */}
+      <div className="fixed inset-0 pointer-events-none overflow-hidden">
+        <div className="absolute -top-40 -left-40 w-96 h-96 bg-violet-600/10 rounded-full blur-3xl" />
+        <div className="absolute -bottom-40 -right-40 w-96 h-96 bg-fuchsia-600/10 rounded-full blur-3xl" />
+      </div>
 
-      <main className="upload-page__main">
-        <UploadZone
-          onFileSelect={handleFileSelect}
-          onError={handleFileError}
-          disabled={isLoading}
-        />
+      <div className="relative z-10 flex flex-col flex-1 items-center justify-center px-4 py-8">
+        <div className="w-full max-w-lg">
+          <Header />
 
-        {selectedFile && <FilePreview file={selectedFile} />}
+          <main className="space-y-4 mt-2">
+            <UploadZone
+              onFileSelect={handleFileSelect}
+              onError={handleFileError}
+              disabled={isLoading}
+            />
 
-        {displayError && <ErrorBanner message={displayError} />}
+            {selectedFile && <FilePreview file={selectedFile} />}
+            {validationError && <ErrorBanner message={validationError} />}
 
-        <SubmitButton
-          disabled={!selectedFile}
-          isLoading={isLoading}
-          onClick={handleAnalyze}
-        />
-      </main>
+            <SubmitButton
+              disabled={!selectedFile}
+              isLoading={isLoading}
+              onClick={handleAnalyze}
+            />
+          </main>
+        </div>
+      </div>
 
       <LoadingOverlay isLoading={isLoading} />
     </div>

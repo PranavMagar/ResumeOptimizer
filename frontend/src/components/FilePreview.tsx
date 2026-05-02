@@ -2,10 +2,6 @@ interface FilePreviewProps {
   file: File;
 }
 
-/**
- * FilePreview — displays the selected filename and human-readable file size.
- * Shown after a valid file is selected in UploadZone.
- */
 export function FilePreview({ file }: FilePreviewProps) {
   function formatSize(bytes: number): string {
     if (bytes < 1024) return `${bytes} B`;
@@ -13,11 +9,23 @@ export function FilePreview({ file }: FilePreviewProps) {
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
   }
 
+  const isPdf = file.name.toLowerCase().endsWith('.pdf');
+
   return (
-    <div className="file-preview" aria-label={`Selected file: ${file.name}`}>
-      <span className="file-preview__icon" aria-hidden="true">📄</span>
-      <span className="file-preview__name">{file.name}</span>
-      <span className="file-preview__size">{formatSize(file.size)}</span>
+    <div
+      className="flex items-center gap-3 bg-slate-800/60 border border-slate-700 rounded-xl px-4 py-3 animate-fade-in"
+      aria-label={`Selected file: ${file.name}`}
+    >
+      <div className="w-9 h-9 rounded-lg bg-violet-500/20 flex items-center justify-center text-lg flex-shrink-0">
+        {isPdf ? '📄' : '📝'}
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-slate-200 font-medium text-sm truncate">{file.name}</p>
+        <p className="text-slate-500 text-xs">{formatSize(file.size)}</p>
+      </div>
+      <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-violet-500/20 text-violet-300 uppercase tracking-wide">
+        {isPdf ? 'PDF' : 'DOCX'}
+      </span>
     </div>
   );
 }

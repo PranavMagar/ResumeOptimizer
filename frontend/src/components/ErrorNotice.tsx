@@ -2,24 +2,19 @@ interface ErrorNoticeProps {
   errors: string[];
 }
 
-/**
- * ErrorNotice — renders user-facing error messages from the errors[] array.
- *
- * MUST NOT display HTTP status codes, stack traces, file paths, or internal
- * service names (Requirement 8.6, 9.5, Design Property 20).
- *
- * Only renders the message strings as-is — the backend already sanitizes
- * these to be user-facing only (Result_Renderer contract).
- */
 export function ErrorNotice({ errors }: ErrorNoticeProps) {
   if (!errors || errors.length === 0) return null;
 
   return (
-    <div className="error-notice" role="alert" aria-live="polite">
-      <h3 className="error-notice__title">Some features are unavailable</h3>
-      <ul className="error-notice__list">
+    <div
+      className="bg-amber-500/10 border border-amber-500/30 rounded-2xl px-4 py-3 space-y-1"
+      role="alert"
+      aria-live="polite"
+    >
+      <p className="text-amber-300 font-semibold text-sm">Some features are unavailable</p>
+      <ul className="space-y-0.5">
         {errors.map((error, index) => (
-          <li key={index} className="error-notice__item">
+          <li key={index} className="text-amber-400/80 text-sm">
             {error}
           </li>
         ))}
