@@ -44,15 +44,26 @@ export function renderResult(
   const responseRewrites = rewrites?.rewrites ?? {};
 
   // ── Build the final ApiResponse ───────────────────────────────────────────
-  // Strip all internal fields — only expose the five defined API fields.
-  // This ensures no raw resume text, file paths, or stack traces leak out
-  // (Requirement 7.5, Property 16).
   const apiResponse: ApiResponse = {
     score: responseScore,
     issues: responseIssues,
     suggestions: responseSuggestions,
     rewrites: responseRewrites,
     errors,
+    criteria: {
+      detectedSections: analysis?.detectedSections ?? [],
+      missingSections: analysis?.missingSections ?? [],
+      weakBullets: analysis?.weakBullets ?? [],
+      keywordDensityScore: analysis?.keywordDensityScore ?? 0,
+      clarityIssues: analysis?.clarityIssues ?? [],
+      breakdown: score?.breakdown ?? {
+        structure: 0,
+        keywords: 0,
+        bullets: 0,
+        educationContact: 0,
+        clarity: 0,
+      },
+    },
   };
 
   return apiResponse;

@@ -13,20 +13,20 @@ const ALL_SECTIONS: SectionName[] = [
 
 /**
  * Regex patterns for detecting each resume section.
- * Contact is detected by content patterns (email, phone, LinkedIn).
- * All others are detected by header keywords (case-insensitive).
+ * Stricter: requires actual section headers on their own line or followed by colon/newline.
+ * Contact requires both email AND phone (or LinkedIn) to pass.
  */
 const SECTION_PATTERNS: Record<SectionName, RegExp> = {
-  contact: /\S+@\S+\.\S+|\(?\d{3}\)?[\s.-]\d{3}[\s.-]\d{4}|linkedin/i,
-  summary: /\b(summary|objective|profile)\b/i,
-  experience: /\b(experience|employment|work\s+history)\b/i,
-  education: /\b(education|degree|university)\b/i,
-  skills: /\b(skills|technologies|competencies)\b/i,
+  contact: /(\S+@\S+\.\S+)[\s\S]{0,300}(\(?\d{3}\)?[\s.-]\d{3}[\s.-]\d{4}|linkedin\.com)/i,
+  summary: /^[\s]*\b(summary|professional\s+summary|objective|career\s+objective|profile|about\s+me)\b[\s]*[:\n]/im,
+  experience: /^[\s]*\b(experience|work\s+experience|employment|work\s+history|professional\s+experience)\b[\s]*[:\n]/im,
+  education: /^[\s]*\b(education|academic|degree|qualifications)\b[\s]*[:\n]/im,
+  skills: /^[\s]*\b(skills|technical\s+skills|core\s+competencies|technologies|competencies|expertise)\b[\s]*[:\n]/im,
 };
 
 /**
  * Weak action verb phrases to flag in bullet points.
- * Checked case-insensitively.
+ * Checked case-insensitively. Expanded list for stricter detection.
  */
 const WEAK_VERBS: string[] = [
   'helped',
@@ -37,42 +37,35 @@ const WEAK_VERBS: string[] = [
   'supported',
   'was involved in',
   'contributed to',
+  'helped with',
+  'worked with',
+  'was part of',
+  'involved in',
+  'tasked with',
+  'duties included',
+  'helped to',
+  'tried to',
+  'attempted to',
+  'worked alongside',
+  'aided',
+  'facilitated',
 ];
 
 /**
  * ATS-relevant keywords for keyword density scoring.
+ * Deliberately excludes ultra-common terms (html, css, git, communication)
+ * so only resumes with real technical depth score well.
  */
 const ATS_KEYWORDS: string[] = [
-  'javascript',
-  'typescript',
-  'python',
-  'java',
-  'react',
-  'node',
-  'sql',
-  'aws',
-  'docker',
-  'kubernetes',
-  'git',
-  'agile',
-  'scrum',
-  'api',
-  'rest',
-  'graphql',
-  'ci/cd',
-  'testing',
-  'leadership',
-  'communication',
-  'project management',
-  'data analysis',
-  'machine learning',
-  'cloud',
-  'microservices',
-  'devops',
-  'html',
-  'css',
-  'mongodb',
-  'postgresql',
+  'javascript', 'typescript', 'python', 'java', 'c++', 'golang', 'rust',
+  'react', 'angular', 'vue', 'next.js', 'node.js',
+  'sql', 'postgresql', 'mongodb', 'redis', 'elasticsearch',
+  'aws', 'azure', 'gcp', 'docker', 'kubernetes', 'terraform',
+  'graphql', 'rest api', 'microservices', 'ci/cd', 'devops',
+  'machine learning', 'deep learning', 'data analysis', 'data science',
+  'agile', 'scrum', 'product management', 'project management',
+  'system design', 'distributed systems', 'cloud architecture',
+  'performance optimization', 'security', 'testing', 'tdd',
 ];
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -124,24 +117,25 @@ function detectWeakBullets(text: string): string[] {
 }
 
 /**
- * Computes keyword density score: ratio of unique ATS keywords found to threshold.
- * Threshold = 10 keywords per 500 words, minimum 10.
- * Score is clamped to [0, 1].
+ * Computes keyword density score.
+ * Threshold: 8 unique ATS keywords required for a score of 1.0.
+ * Partial credit below that. Score clamped to [0, 1].
+ * Harder than before — common resumes typically hit 3–5 keywords.
  */
 function computeKeywordDensity(text: string): number {
   const lowerText = text.toLowerCase();
-  const wordCount = text.trim().split(/\s+/).length;
 
   const uniqueKeywordsFound = ATS_KEYWORDS.filter((keyword) =>
     lowerText.includes(keyword),
   ).length;
 
-  const threshold = Math.max(10, Math.floor(wordCount / 500) * 10);
+  // Require 8 distinct ATS keywords for full score (was 10 per 500 words but too easy)
+  const threshold = 8;
   return Math.min(uniqueKeywordsFound / threshold, 1.0);
 }
 
 /**
- * Finds sentences exceeding 30 words.
+ * Finds sentences exceeding 20 words (stricter than before — was 30).
  * Splits on sentence-ending punctuation (., !, ?).
  */
 function detectClarityIssues(text: string): string[] {
@@ -152,7 +146,7 @@ function detectClarityIssues(text: string): string[] {
 
   return sentences.filter((sentence) => {
     const wordCount = sentence.split(/\s+/).filter((w) => w.length > 0).length;
-    return wordCount > 30;
+    return wordCount > 20;
   });
 }
 
@@ -230,21 +224,30 @@ export async function analyzeText(text: string): Promise<AnalysisResult> {
     );
   }
 
+  // Check for minimum bullet count — resumes need quantified achievements
+  const allBullets = text.split('\n').filter(l => /^[\s]*[-•*–]/.test(l));
+  if (allBullets.length < 4) {
+    issues.push('Too few bullet points — resume lacks quantified achievements');
+    suggestions.push(
+      'Add at least 4–6 bullet points under your experience section with measurable outcomes (e.g., "Increased sales by 30%")',
+    );
+  }
+
   // Low keyword density issue
-  if (keywordDensityScore < 1.0) {
+  if (keywordDensityScore < 0.75) {
     issues.push('Resume has low keyword density for ATS systems');
     suggestions.push(
       'Add relevant technical and professional keywords from the job description to improve ATS matching',
     );
   }
 
-  // Clarity issue
+  // Clarity issue — stricter: flag even 1 long sentence
   if (clarityIssues.length > 0) {
     issues.push(
-      `${clarityIssues.length} sentence(s) exceed 30 words and may reduce readability`,
+      `${clarityIssues.length} sentence(s) exceed 20 words and reduce readability`,
     );
     suggestions.push(
-      'Break long sentences into shorter, more impactful bullet points or statements',
+      'Break long sentences into concise bullet points — aim for under 20 words per statement',
     );
   }
 

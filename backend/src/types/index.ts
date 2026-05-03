@@ -60,4 +60,19 @@ export interface ApiResponse {
     experience?: string[];
   };
   errors: string[];
+  // Criteria breakdown for split-screen scorecard
+  criteria: {
+    detectedSections: SectionName[];
+    missingSections: SectionName[];
+    weakBullets: string[];
+    keywordDensityScore: number;
+    clarityIssues: string[];
+    breakdown: {
+      structure: number;
+      keywords: number;
+      bullets: number;
+      educationContact: number;
+      clarity: number;
+    };
+  };
 }

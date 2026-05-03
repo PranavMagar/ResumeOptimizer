@@ -54,6 +54,7 @@ export async function generateRewrites(
 ): Promise<RewriteResult> {
   // Guard: missing API key — degrade gracefully (Req 6.8)
   const apiKey = process.env.OPENAI_API_KEY;
+  console.log('[aiRewrite] apiKey present:', !!apiKey, 'length:', (apiKey ?? '').length);
   if (!apiKey || apiKey.trim() === '') {
     return { rewrites: {}, aiError: USER_FACING_UNAVAILABLE };
   }
@@ -61,6 +62,7 @@ export async function generateRewrites(
   // Short-circuit: nothing to rewrite
   const needsSummary = analysis.missingSections.includes('summary');
   const needsBullets = analysis.weakBullets.length > 0;
+  console.log('[aiRewrite] needsSummary:', needsSummary, 'needsBullets:', needsBullets, 'weakBullets:', analysis.weakBullets.length, 'missingSections:', analysis.missingSections);
 
   if (!needsSummary && !needsBullets) {
     return { rewrites: {} };
@@ -93,6 +95,7 @@ export async function generateRewrites(
 
     return { rewrites };
   } catch (err) {
+    console.log('[aiRewrite] ERROR:', err instanceof Error ? err.message : err);
     // Detect AbortController timeout (DOMException name 'AbortError')
     if (
       err instanceof Error &&

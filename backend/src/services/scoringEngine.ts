@@ -66,15 +66,15 @@ export function computeScore(analysis: AnalysisResult): ScoreResult {
   const structure = Math.min(analysis.detectedSections.length * 5, 25);
 
   // ── Keywords (max 20) ─────────────────────────────────────────────────────
-  const keywords = Math.round(Math.min(analysis.keywordDensityScore, 1.0) * 20);
+  // Power curve: partial scores penalized more steeply
+  const keywords = Math.round(Math.pow(analysis.keywordDensityScore, 1.5) * 20);
 
   // ── Bullets (max 25) ──────────────────────────────────────────────────────
-  // If no weak bullets at all, award full 25.
-  // Otherwise deduct 5 pts per weak bullet, minimum 0.
+  // Deduct 7pts per weak bullet (stricter than before), minimum 0
   const bullets =
     analysis.weakBullets.length === 0
       ? 25
-      : Math.max(0, Math.round(25 - analysis.weakBullets.length * 5));
+      : Math.max(0, Math.round(25 - analysis.weakBullets.length * 7));
 
   // ── Education + Contact (max 15) ──────────────────────────────────────────
   const educationPts = analysis.detectedSections.includes('education') ? 7.5 : 0;
@@ -83,7 +83,8 @@ export function computeScore(analysis: AnalysisResult): ScoreResult {
   // Results: 0 (neither), 8 (one of them, Math.round(7.5)=8), or 15 (both)
 
   // ── Clarity (max 15) ──────────────────────────────────────────────────────
-  const clarity = Math.max(0, 15 - analysis.clarityIssues.length * 3);
+  // Deduct 4pts per long sentence (stricter — was 3)
+  const clarity = Math.max(0, 15 - analysis.clarityIssues.length * 4);
 
   // ── Raw sum and clamped score ─────────────────────────────────────────────
   const rawScore = structure + keywords + bullets + educationContact + clarity;

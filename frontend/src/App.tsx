@@ -1,26 +1,39 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { ErrorBoundary } from './components/ErrorBoundary';
+import { AuthProvider, useAuth } from './context/AuthContext';
+import { AuthPage } from './pages/AuthPage';
 import { UploadPage } from './pages/UploadPage';
+import { JobLevelPage } from './pages/JobLevelPage';
+import { AnalyzingPage } from './pages/AnalyzingPage';
 import { ResultsPage } from './pages/ResultsPage';
+import { ReactNode } from 'react';
 
-/**
- * App — root component.
- *
- * Wraps the app in BrowserRouter and ErrorBoundary.
- * Routes:
- *   /         → UploadPage  (Requirement 8.1)
- *   /results  → ResultsPage (Requirement 8.3)
- *   *         → redirect to /
- */
+function RequireAuth({ children }: { children: ReactNode }) {
+  const { user } = useAuth();
+  return user ? <>{children}</> : <Navigate to="/" replace />;
+}
+
+function AppRoutes() {
+  const { user } = useAuth();
+  return (
+    <Routes>
+      <Route path="/" element={user ? <Navigate to="/upload" replace /> : <AuthPage />} />
+      <Route path="/upload" element={<RequireAuth><UploadPage /></RequireAuth>} />
+      <Route path="/job-level" element={<RequireAuth><JobLevelPage /></RequireAuth>} />
+      <Route path="/analyzing" element={<RequireAuth><AnalyzingPage /></RequireAuth>} />
+      <Route path="/results" element={<RequireAuth><ResultsPage /></RequireAuth>} />
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
+  );
+}
+
 export function App() {
   return (
     <BrowserRouter>
       <ErrorBoundary>
-        <Routes>
-          <Route path="/" element={<UploadPage />} />
-          <Route path="/results" element={<ResultsPage />} />
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
+        <AuthProvider>
+          <AppRoutes />
+        </AuthProvider>
       </ErrorBoundary>
     </BrowserRouter>
   );

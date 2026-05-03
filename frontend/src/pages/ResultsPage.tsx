@@ -1,15 +1,25 @@
 import { useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Header } from '../components/Header';
-import { ScoreGauge } from '../components/ScoreGauge';
-import { IssuesList } from '../components/IssuesList';
+import { ApiResponse } from '../types/api';
+import { ResumePreview } from '../components/ResumePreview';
+import { CriteriaPanel } from '../components/CriteriaPanel';
 import { RewritePanel } from '../components/RewritePanel';
 import { ErrorNotice } from '../components/ErrorNotice';
-import { ApiResponse } from '../types/api';
+import { JobLevel } from './JobLevelPage';
 
 interface LocationState {
   result: ApiResponse;
+  file: File;
+  jobLevel: JobLevel;
 }
+
+const LEVEL_LABELS: Record<JobLevel, string> = {
+  internship: 'Internship',
+  entry: 'Entry Level',
+  mid: 'Mid Level',
+  senior: 'Senior Level',
+  executive: 'Executive',
+};
 
 export function ResultsPage() {
   const location = useLocation();
@@ -17,6 +27,8 @@ export function ResultsPage() {
 
   const state = location.state as LocationState | null;
   const result = state?.result;
+  const file = state?.file;
+  const jobLevel = state?.jobLevel;
 
   useEffect(() => {
     if (!result) {
@@ -24,51 +36,61 @@ export function ResultsPage() {
     }
   }, [result, navigate]);
 
-  if (!result) return null;
+  if (!result || !file) return null;
 
   return (
-    <div className="min-h-screen bg-slate-950">
-      {/* Background glow */}
-      <div className="fixed inset-0 pointer-events-none overflow-hidden">
-        <div className="absolute -top-40 -left-40 w-96 h-96 bg-violet-600/10 rounded-full blur-3xl" />
-        <div className="absolute -bottom-40 -right-40 w-96 h-96 bg-fuchsia-600/10 rounded-full blur-3xl" />
-      </div>
+    <div className="h-screen bg-slate-950 flex flex-col overflow-hidden">
+      {/* Top bar */}
+      <header className="flex items-center justify-between px-5 py-3 border-b border-slate-800 flex-shrink-0 bg-slate-950/80 backdrop-blur-sm z-10">
+        <div className="flex items-center gap-2">
+          <span className="text-xl">✦</span>
+          <span className="font-extrabold bg-gradient-to-r from-violet-400 via-fuchsia-400 to-pink-400 bg-clip-text text-transparent">
+            AI Resume Optimizer
+          </span>
+          {jobLevel && (
+            <span className="text-xs px-2 py-0.5 rounded-full bg-violet-500/20 text-violet-300 border border-violet-500/30 ml-1">
+              {LEVEL_LABELS[jobLevel]}
+            </span>
+          )}
+        </div>
+        <button
+          onClick={() => navigate('/')}
+          className="text-sm text-slate-400 hover:text-white transition-colors px-3 py-1.5 rounded-lg hover:bg-slate-800"
+        >
+          ← New Analysis
+        </button>
+      </header>
 
-      <div className="relative z-10 max-w-2xl mx-auto px-4 py-8">
-        <Header />
+      {/* Split-screen body */}
+      <div className="flex flex-1 overflow-hidden">
 
-        <main className="space-y-6 mt-2 animate-slide-up">
-          {/* Score */}
-          <div className="flex flex-col items-center">
-            <h2 className="text-lg font-bold text-slate-200 mb-4">Your ATS Score</h2>
-            <ScoreGauge score={result.score} />
-          </div>
+        {/* LEFT — Resume preview */}
+        <div className="w-1/2 border-r border-slate-800 flex flex-col overflow-hidden bg-slate-900/30">
+          <ResumePreview file={file} />
+        </div>
 
-          {/* Error notices */}
+        {/* RIGHT — Criteria scorecard + rewrites */}
+        <div className="w-1/2 flex flex-col overflow-hidden">
+          {/* Error notice if any */}
           {result.errors.length > 0 && (
-            <ErrorNotice errors={result.errors} />
+            <div className="px-4 pt-3 flex-shrink-0">
+              <ErrorNotice errors={result.errors} />
+            </div>
           )}
 
-          {/* Issues & Suggestions */}
-          <IssuesList issues={result.issues} suggestions={result.suggestions} />
-
-          {/* AI Rewrites */}
-          {(result.rewrites.summary || result.rewrites.experience?.length) && (
-            <RewritePanel rewrites={result.rewrites} />
-          )}
-
-          {/* Back button */}
-          <div className="pt-2 pb-8">
-            <button
-              onClick={() => navigate('/')}
-              aria-label="Analyze another resume"
-              className="w-full py-3.5 rounded-xl font-semibold text-base border border-slate-700 text-slate-300 hover:bg-slate-800 hover:text-white transition-all duration-200 active:scale-[0.98]"
-            >
-              ← Analyze Another Resume
-            </button>
+          {/* Criteria panel — scrollable */}
+          <div className="flex-1 overflow-hidden">
+            <CriteriaPanel result={result} />
           </div>
-        </main>
+        </div>
       </div>
+
+      {/* Bottom drawer for AI rewrites (if available) */}
+      {(result.rewrites.summary || result.rewrites.experience?.length) && (
+        <div className="border-t border-slate-800 bg-slate-900/60 px-6 py-4 flex-shrink-0 max-h-64 overflow-y-auto">
+          <RewritePanel rewrites={result.rewrites} />
+        </div>
+      )}
     </div>
   );
 }

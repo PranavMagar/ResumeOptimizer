@@ -1,5 +1,5 @@
-// ApiResponse mirrors the backend contract exactly.
-// This is the shape returned by POST /api/analyze.
+export type SectionName = 'contact' | 'summary' | 'experience' | 'education' | 'skills';
+
 export interface ApiResponse {
   score: number;
   issues: string[];
@@ -9,4 +9,18 @@ export interface ApiResponse {
     experience?: string[];
   };
   errors: string[];
+  criteria: {
+    detectedSections: SectionName[];
+    missingSections: SectionName[];
+    weakBullets: string[];
+    keywordDensityScore: number;
+    clarityIssues: string[];
+    breakdown: {
+      structure: number;
+      keywords: number;
+      bullets: number;
+      educationContact: number;
+      clarity: number;
+    };
+  };
 }
