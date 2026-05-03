@@ -21,9 +21,9 @@ export interface AnalysisResult {
   rewrites: { summary: string; experience: string[]; coverLetter?: string };
   errors: string[];
   keywords: { matched: string[]; missing: string[] };
-  sections: SectionScore[];
+  sections?: SectionScore[];
   jdMatch?: { score: number; matched: string[]; missing: string[] };
-  readability: { words: number; bullets: number; quantified: number; readingTime: string };
+  readability?: { words: number; bullets: number; quantified: number; readingTime: string };
 }
 
 interface ResumeCtx {

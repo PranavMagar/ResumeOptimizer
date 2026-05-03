@@ -55,7 +55,10 @@ router.post(
       const parseResult = await parseFile(uploadResult);
 
       // ── Step 3: Analyze text ────────────────────────────────────────────
-      const analysisResult = await analyzeText(parseResult.text);
+      const profession = (req.body.profession as string) || 'other';
+      const targetRole = (req.body.targetRole as string) || '';
+      const jobDescription = (req.body.jobDescription as string) || '';
+      const analysisResult = await analyzeText(parseResult.text, { profession, targetRole, jobDescription });
 
       // ── Step 4: Score + Rewrite in parallel ─────────────────────────────
       const serviceErrors: ServiceError[] = [];
@@ -105,6 +108,9 @@ router.post(
         analysisResult,
         rewriteResult,
         serviceErrors,
+        parseResult.text,
+        profession,
+        targetRole,
       );
 
       logInfo(correlationId, 'analyze', 'Request completed successfully');

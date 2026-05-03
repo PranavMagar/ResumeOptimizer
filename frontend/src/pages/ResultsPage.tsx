@@ -157,14 +157,14 @@ export function ResultsPage() {
         </div>
 
         {/* Section breakdown */}
-        {result.sections?.length > 0 && (
+        {result.sections && result.sections.length > 0 && (
           <div className="surface p-6 animate-fade-in">
             <div className="flex items-center gap-2 mb-4">
               <Layers className="w-4 h-4 text-primary" />
               <h3 className="font-display text-lg font-semibold">Section breakdown</h3>
             </div>
             <div className="grid sm:grid-cols-2 lg:grid-cols-5 gap-3">
-              {result.sections.map((s) => (
+              {result.sections!.map((s) => (
                 <div key={s.name} className="rounded-xl border border-border p-3 bg-card">
                   <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center gap-2 text-sm font-medium">

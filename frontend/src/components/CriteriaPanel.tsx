@@ -50,6 +50,9 @@ const SECTION_LABELS: Record<SectionName, string> = {
 
 export function CriteriaPanel({ result }: CriteriaPanelProps) {
   const { criteria, score } = result;
+
+  if (!criteria) return null;
+
   const { breakdown, detectedSections, missingSections, weakBullets, keywordDensityScore, clarityIssues } = criteria;
 
   const totalBullets = weakBullets.length + (breakdown.bullets === 25 ? 1 : 0);
@@ -195,7 +198,7 @@ export function CriteriaPanel({ result }: CriteriaPanelProps) {
           <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-4 space-y-2">
             <p className="text-slate-400 text-xs font-semibold uppercase tracking-wider">Weak Bullets Detected</p>
             <ul className="space-y-1.5">
-              {weakBullets.slice(0, 5).map((bullet, i) => (
+              {weakBullets.slice(0, 5).map((bullet: string, i: number) => (
                 <li key={i} className="flex items-start gap-2 text-xs text-slate-400">
                   <span className="text-red-400 flex-shrink-0 mt-0.5">✗</span>
                   <span className="line-clamp-2">{bullet}</span>
@@ -213,7 +216,7 @@ export function CriteriaPanel({ result }: CriteriaPanelProps) {
           <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-4 space-y-2">
             <p className="text-slate-400 text-xs font-semibold uppercase tracking-wider">Missing Sections</p>
             <div className="flex flex-wrap gap-2">
-              {missingSections.map((s) => (
+              {missingSections.map((s: SectionName) => (
                 <span key={s} className="text-xs px-2.5 py-1 rounded-full bg-red-500/10 text-red-400 border border-red-500/20">
                   {SECTION_LABELS[s]}
                 </span>

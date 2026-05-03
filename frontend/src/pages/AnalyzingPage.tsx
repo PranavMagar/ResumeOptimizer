@@ -48,7 +48,20 @@ export function AnalyzingPage() {
       .then(([data]) => {
         if (done.current) return;
         done.current = true;
-        setResult(data);
+        // Ensure all required fields have safe defaults
+        const safeData = {
+          ...data,
+          keywords: data.keywords ?? { matched: [], missing: [] },
+          sections: data.sections ?? [],
+          readability: data.readability ?? { words: 0, bullets: 0, quantified: 0, readingTime: '—' },
+          rewrites: {
+            summary: data.rewrites?.summary ?? '',
+            experience: data.rewrites?.experience ?? [],
+            coverLetter: data.rewrites?.coverLetter ?? '',
+          },
+          errors: data.errors ?? [],
+        };
+        setResult(safeData);
         setProgress(100);
         setTimeout(() => nav('/results'), 300);
       })
