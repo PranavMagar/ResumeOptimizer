@@ -1,165 +1,76 @@
-import { useState } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
+import { useEffect } from 'react';
+import { PageShell } from '../components/PageShell';
+import { useResume, JobLevel } from '../context/ResumeContext';
+import { GraduationCap, Briefcase, Crown, Star, Rocket } from 'lucide-react';
 
-export type JobLevel = 'internship' | 'entry' | 'mid' | 'senior' | 'executive';
-
-interface JobLevelOption {
-  id: JobLevel;
-  label: string;
-  sublabel: string;
-  icon: string;
-  years: string;
-  color: string;
-  ring: string;
-}
-
-const JOB_LEVELS: JobLevelOption[] = [
-  {
-    id: 'internship',
-    label: 'Internship',
-    sublabel: 'Student or recent grad seeking internship',
-    icon: '🎓',
-    years: '0 years exp.',
-    color: 'from-sky-500/20 to-sky-600/5',
-    ring: 'border-sky-500/50',
-  },
-  {
-    id: 'entry',
-    label: 'Entry Level',
-    sublabel: 'Just starting out in your career',
-    icon: '🌱',
-    years: '0–2 years exp.',
-    color: 'from-emerald-500/20 to-emerald-600/5',
-    ring: 'border-emerald-500/50',
-  },
-  {
-    id: 'mid',
-    label: 'Mid Level',
-    sublabel: 'Established professional growing your career',
-    icon: '⚡',
-    years: '3–6 years exp.',
-    color: 'from-violet-500/20 to-violet-600/5',
-    ring: 'border-violet-500/50',
-  },
-  {
-    id: 'senior',
-    label: 'Senior Level',
-    sublabel: 'Experienced professional or team lead',
-    icon: '🚀',
-    years: '7–12 years exp.',
-    color: 'from-fuchsia-500/20 to-fuchsia-600/5',
-    ring: 'border-fuchsia-500/50',
-  },
-  {
-    id: 'executive',
-    label: 'Executive',
-    sublabel: 'Director, VP, C-suite or equivalent',
-    icon: '👑',
-    years: '12+ years exp.',
-    color: 'from-amber-500/20 to-amber-600/5',
-    ring: 'border-amber-500/50',
-  },
+const LEVELS: { id: JobLevel; title: string; desc: string; icon: typeof Star; years: string }[] = [
+  { id: 'internship', title: 'Internship', desc: 'Student or recent grad seeking internship experience.', icon: GraduationCap, years: '0 yrs' },
+  { id: 'entry', title: 'Entry Level', desc: 'Just starting out, recent grad, or career switcher.', icon: Rocket, years: '0–2 yrs' },
+  { id: 'mid', title: 'Mid Level', desc: 'Confident IC delivering features end-to-end.', icon: Briefcase, years: '3–5 yrs' },
+  { id: 'senior', title: 'Senior', desc: 'Owns systems, mentors, leads roadmaps.', icon: Star, years: '6–10 yrs' },
+  { id: 'executive', title: 'Executive', desc: 'Director, VP, C-suite — strategic leadership.', icon: Crown, years: '10+ yrs' },
 ];
 
-interface LocationState {
-  file: File;
-}
-
 export function JobLevelPage() {
-  const navigate = useNavigate();
-  const location = useLocation();
-  const state = location.state as LocationState | null;
-  const file = state?.file;
+  const nav = useNavigate();
+  const { jobLevel, setJobLevel, file } = useResume();
 
-  const [selected, setSelected] = useState<JobLevel | null>(null);
-
-  if (!file) {
-    navigate('/upload', { replace: true });
-    return null;
-  }
-
-  function handleContinue() {
-    if (!selected || !file) return;
-    navigate('/analyzing', { state: { file, jobLevel: selected } });
-  }
+  useEffect(() => { if (!file) nav('/upload'); }, [file, nav]);
 
   return (
-    <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center px-4 py-10">
-      {/* Background glows */}
-      <div className="fixed inset-0 pointer-events-none overflow-hidden">
-        <div className="absolute -top-40 -left-40 w-96 h-96 bg-violet-600/10 rounded-full blur-3xl" />
-        <div className="absolute -bottom-40 -right-40 w-96 h-96 bg-fuchsia-600/10 rounded-full blur-3xl" />
-      </div>
-
-      <div className="relative z-10 w-full max-w-xl">
-        {/* Header */}
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center gap-2 mb-3">
-            <span className="text-2xl">✦</span>
-            <span className="text-2xl font-extrabold bg-gradient-to-r from-violet-400 via-fuchsia-400 to-pink-400 bg-clip-text text-transparent">
-              AI Resume Optimizer
-            </span>
+    <PageShell>
+      <section className="container max-w-5xl py-12 lg:py-20">
+        <div className="text-center space-y-4 mb-12 animate-fade-in">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full glass text-xs">
+            <span className="w-2 h-2 rounded-full bg-accent animate-pulse" />
+            <span>Step 2 of 3 · Target seniority</span>
           </div>
-          <h2 className="text-xl font-bold text-slate-200 mt-2">What level are you targeting?</h2>
-          <p className="text-slate-400 text-sm mt-1">
-            We'll tailor the analysis criteria to match your career stage.
+          <h1 className="font-display text-4xl lg:text-5xl font-bold">
+            Pick your <span className="gradient-text">target level</span>
+          </h1>
+          <p className="text-muted-foreground max-w-xl mx-auto">
+            We'll calibrate scoring, suggested keywords, and rewrites to match the level you're applying for.
           </p>
         </div>
 
-        {/* Level cards */}
-        <div className="space-y-3">
-          {JOB_LEVELS.map((level) => {
-            const isSelected = selected === level.id;
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {LEVELS.map((l, i) => {
+            const active = jobLevel === l.id;
+            const Icon = l.icon;
             return (
-              <button
-                key={level.id}
-                onClick={() => setSelected(level.id)}
-                className={`w-full flex items-center gap-4 p-4 rounded-2xl border-2 transition-all duration-200 text-left
-                  bg-gradient-to-r ${level.color}
-                  ${isSelected
-                    ? `${level.ring} scale-[1.01] shadow-lg`
-                    : 'border-slate-800 hover:border-slate-600'
-                  }`}
-              >
-                <div className="text-3xl flex-shrink-0">{level.icon}</div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <p className="text-slate-200 font-semibold">{level.label}</p>
-                    <span className="text-xs text-slate-500 bg-slate-800/60 px-2 py-0.5 rounded-full">
-                      {level.years}
-                    </span>
+              <button key={l.id} onClick={() => setJobLevel(l.id)}
+                style={{ animationDelay: `${i * 60}ms` }}
+                className={`group relative text-left rounded-2xl p-6 transition-all duration-300 animate-fade-in ${active ? 'scale-[1.02] shadow-glow' : 'hover:scale-[1.01]'}`}>
+                <div className={`absolute inset-0 rounded-2xl ${active ? 'bg-gradient-primary opacity-100' : 'glass'}`} />
+                <div className={`absolute inset-[1.5px] rounded-2xl ${active ? 'bg-card' : ''}`} />
+                <div className="relative flex items-start gap-4">
+                  <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 transition ${
+                    active ? 'bg-gradient-primary text-white' : 'bg-secondary text-foreground group-hover:bg-gradient-primary group-hover:text-white'
+                  }`}>
+                    <Icon className="w-6 h-6" />
                   </div>
-                  <p className="text-slate-400 text-sm mt-0.5">{level.sublabel}</p>
-                </div>
-                <div className={`w-5 h-5 rounded-full border-2 flex-shrink-0 flex items-center justify-center transition-all
-                  ${isSelected ? `${level.ring} bg-gradient-to-br ${level.color}` : 'border-slate-700'}`}>
-                  {isSelected && <div className="w-2 h-2 rounded-full bg-white" />}
+                  <div className="flex-1">
+                    <div className="flex items-center justify-between gap-2">
+                      <h3 className="font-display text-xl font-semibold">{l.title}</h3>
+                      <span className="text-xs text-muted-foreground font-mono">{l.years}</span>
+                    </div>
+                    <p className="text-sm text-muted-foreground mt-1">{l.desc}</p>
+                  </div>
                 </div>
               </button>
             );
           })}
         </div>
 
-        {/* Continue button */}
-        <button
-          onClick={handleContinue}
-          disabled={!selected}
-          className={`w-full mt-6 py-3.5 rounded-xl font-semibold text-base tracking-wide transition-all duration-200
-            ${selected
-              ? 'bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white hover:from-violet-500 hover:to-fuchsia-500 hover:shadow-lg hover:shadow-violet-500/25 active:scale-[0.98]'
-              : 'bg-slate-800 text-slate-600 cursor-not-allowed'
-            }`}
-        >
-          Analyze My Resume →
-        </button>
-
-        <button
-          onClick={() => navigate('/upload')}
-          className="w-full mt-3 py-2.5 text-slate-500 text-sm hover:text-slate-300 transition-colors"
-        >
-          ← Back
-        </button>
-      </div>
-    </div>
+        <div className="flex items-center justify-between mt-10">
+          <button onClick={() => nav('/upload')} className="px-4 py-2 text-muted-foreground hover:text-foreground transition text-sm">← Back</button>
+          <button onClick={() => nav('/analyzing')}
+            className="px-8 py-3 rounded-xl bg-gradient-primary text-white font-semibold shadow-glow hover:opacity-90 transition">
+            Analyze resume →
+          </button>
+        </div>
+      </section>
+    </PageShell>
   );
 }

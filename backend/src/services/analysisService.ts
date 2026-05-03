@@ -117,21 +117,17 @@ function detectWeakBullets(text: string): string[] {
 }
 
 /**
- * Computes keyword density score.
- * Threshold: 8 unique ATS keywords required for a score of 1.0.
- * Partial credit below that. Score clamped to [0, 1].
- * Harder than before — common resumes typically hit 3–5 keywords.
+ * Computes keyword density score and returns matched/missing keyword lists.
  */
-function computeKeywordDensity(text: string): number {
+function computeKeywordDensity(text: string): { score: number; matched: string[]; missing: string[] } {
   const lowerText = text.toLowerCase();
 
-  const uniqueKeywordsFound = ATS_KEYWORDS.filter((keyword) =>
-    lowerText.includes(keyword),
-  ).length;
+  const matched = ATS_KEYWORDS.filter((keyword) => lowerText.includes(keyword));
+  const missing = ATS_KEYWORDS.filter((keyword) => !lowerText.includes(keyword));
 
-  // Require 8 distinct ATS keywords for full score (was 10 per 500 words but too easy)
   const threshold = 8;
-  return Math.min(uniqueKeywordsFound / threshold, 1.0);
+  const score = Math.min(matched.length / threshold, 1.0);
+  return { score, matched, missing };
 }
 
 /**
@@ -197,7 +193,7 @@ export async function analyzeText(text: string): Promise<AnalysisResult> {
   const weakBullets = detectWeakBullets(text);
 
   // Keyword density (Property 7)
-  const keywordDensityScore = computeKeywordDensity(text);
+  const { score: keywordDensityScore, matched: matchedKeywords, missing: missingKeywords } = computeKeywordDensity(text);
 
   // Clarity (Property 8)
   const clarityIssues = detectClarityIssues(text);
@@ -257,6 +253,8 @@ export async function analyzeText(text: string): Promise<AnalysisResult> {
     weakBullets,
     keywordDensityScore,
     clarityIssues,
+    matchedKeywords,
+    missingKeywords,
     issues,
     suggestions,
   };

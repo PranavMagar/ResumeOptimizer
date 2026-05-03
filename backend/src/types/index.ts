@@ -18,7 +18,9 @@ export interface AnalysisResult {
   missingSections: SectionName[];
   weakBullets: string[];
   keywordDensityScore: number; // 0.0–1.0 (1.0 = threshold met)
-  clarityIssues: string[];     // sentences > 30 words
+  clarityIssues: string[];     // sentences > 20 words
+  matchedKeywords: string[];   // ATS keywords found in resume
+  missingKeywords: string[];   // ATS keywords not found
   issues: string[];
   suggestions: string[];
 }
@@ -74,5 +76,9 @@ export interface ApiResponse {
       educationContact: number;
       clarity: number;
     };
+  };
+  keywords: {
+    matched: string[];
+    missing: string[];
   };
 }

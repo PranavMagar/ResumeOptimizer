@@ -23,4 +23,8 @@ export interface ApiResponse {
       clarity: number;
     };
   };
+  keywords: {
+    matched: string[];
+    missing: string[];
+  };
 }

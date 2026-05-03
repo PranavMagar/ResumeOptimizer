@@ -1,117 +1,110 @@
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
-import { UploadZone } from '../components/UploadZone';
-import { FilePreview } from '../components/FilePreview';
-import { ErrorBanner } from '../components/ErrorBanner';
+import { PageShell } from '../components/PageShell';
+import { useResume } from '../context/ResumeContext';
+import { Upload, FileText, X, CheckCircle2 } from 'lucide-react';
+
+const ACCEPTED = ['.pdf', '.docx'];
+const MAX_MB = 5;
 
 export function UploadPage() {
-  const navigate = useNavigate();
-  const { user, logout } = useAuth();
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [validationError, setValidationError] = useState<string | null>(null);
+  const nav = useNavigate();
+  const { file, setFile } = useResume();
+  const [drag, setDrag] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  function handleFileSelect(file: File) {
-    setSelectedFile(file);
-    setValidationError(null);
-  }
+  const validate = (f: File) => {
+    const ext = '.' + f.name.split('.').pop()?.toLowerCase();
+    if (!ACCEPTED.includes(ext)) return `File type not supported. Use ${ACCEPTED.join(', ')}.`;
+    if (f.size > MAX_MB * 1024 * 1024) return `File too large. Max ${MAX_MB} MB.`;
+    return null;
+  };
 
-  function handleFileError(message: string) {
-    setSelectedFile(null);
-    setValidationError(message);
-  }
-
-  function handleContinue() {
-    if (!selectedFile) return;
-    navigate('/job-level', { state: { file: selectedFile } });
-  }
+  const onFile = useCallback((f: File) => {
+    const err = validate(f);
+    if (err) { setError(err); return; }
+    setError(null);
+    setFile(f);
+  }, [setFile]);
 
   return (
-    <div className="min-h-screen bg-slate-950 flex flex-col">
-      {/* Background glow */}
-      <div className="fixed inset-0 pointer-events-none overflow-hidden">
-        <div className="absolute -top-40 -left-40 w-96 h-96 bg-violet-600/10 rounded-full blur-3xl" />
-        <div className="absolute -bottom-40 -right-40 w-96 h-96 bg-fuchsia-600/10 rounded-full blur-3xl" />
-      </div>
-
-      {/* Top nav */}
-      <nav className="relative z-10 flex items-center justify-between px-6 py-4 border-b border-slate-800/60">
-        <div className="flex items-center gap-2">
-          <span className="text-xl">✦</span>
-          <span className="font-extrabold bg-gradient-to-r from-violet-400 via-fuchsia-400 to-pink-400 bg-clip-text text-transparent">
-            AI Resume Optimizer
-          </span>
+    <PageShell>
+      <section className="container max-w-4xl py-12 lg:py-20">
+        <div className="text-center space-y-4 mb-10 animate-fade-in">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full glass text-xs">
+            <span className="w-2 h-2 rounded-full bg-success animate-pulse" />
+            <span>Step 1 of 3 · Upload your resume</span>
+          </div>
+          <h1 className="font-display text-4xl lg:text-5xl font-bold text-balance">
+            Let's <span className="gradient-text">optimize</span> your resume
+          </h1>
+          <p className="text-muted-foreground max-w-xl mx-auto">
+            Drop your resume below. We'll never store it — analysis runs in-memory and disappears after your session.
+          </p>
         </div>
-        {user && (
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-violet-500 to-fuchsia-500 flex items-center justify-center text-white text-sm font-bold">
-              {user.name.charAt(0).toUpperCase()}
-            </div>
-            <span className="text-slate-400 text-sm hidden sm:block">{user.name}</span>
-            <button
-              onClick={logout}
-              className="text-slate-500 text-xs hover:text-slate-300 transition-colors px-2 py-1 rounded-lg hover:bg-slate-800"
-            >
-              Sign out
-            </button>
-          </div>
-        )}
-      </nav>
 
-      <div className="relative z-10 flex flex-col flex-1 items-center justify-center px-4 py-8">
-        <div className="w-full max-w-lg">
-          {/* Heading */}
-          <div className="text-center mb-8">
-            <h2 className="text-2xl font-bold text-slate-200">
-              {user ? `Welcome back, ${user.name.split(' ')[0]} 👋` : 'Upload Your Resume'}
-            </h2>
-            <p className="text-slate-400 text-sm mt-2">
-              Upload your resume and we'll score it against ATS criteria in seconds.
-            </p>
-          </div>
-
-          {/* Steps indicator */}
-          <div className="flex items-center justify-center gap-2 mb-8">
-            {['Upload', 'Job Level', 'Analysis', 'Results'].map((step, i) => (
-              <div key={step} className="flex items-center gap-2">
-                <div className={`flex items-center gap-1.5 ${i === 0 ? 'text-violet-400' : 'text-slate-600'}`}>
-                  <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold
-                    ${i === 0 ? 'bg-violet-500/20 text-violet-400 ring-1 ring-violet-500/50' : 'bg-slate-800 text-slate-600'}`}>
-                    {i + 1}
-                  </div>
-                  <span className={`text-xs font-medium hidden sm:block ${i === 0 ? 'text-violet-400' : 'text-slate-600'}`}>
-                    {step}
-                  </span>
+        <div
+          onDragOver={(e) => { e.preventDefault(); setDrag(true); }}
+          onDragLeave={() => setDrag(false)}
+          onDrop={(e) => { e.preventDefault(); setDrag(false); const f = e.dataTransfer.files[0]; if (f) onFile(f); }}
+          className={`relative rounded-3xl p-10 lg:p-16 text-center transition-all duration-300 ${drag ? 'scale-[1.01]' : ''}`}
+        >
+          <div className={`absolute inset-0 rounded-3xl gradient-border ${drag ? 'animate-pulse-glow' : ''}`} />
+          <div className="relative space-y-5">
+            {!file ? (
+              <>
+                <div className="mx-auto w-20 h-20 rounded-2xl bg-gradient-primary flex items-center justify-center shadow-glow animate-float">
+                  <Upload className="w-9 h-9 text-white" />
                 </div>
-                {i < 3 && <div className="w-6 h-px bg-slate-800" />}
+                <div>
+                  <h3 className="font-display text-2xl font-semibold">Drag & drop your resume</h3>
+                  <p className="text-muted-foreground mt-1">PDF or DOCX · up to {MAX_MB} MB</p>
+                </div>
+                <div>
+                  <label>
+                    <input type="file" accept={ACCEPTED.join(',')} className="hidden" onChange={(e) => e.target.files?.[0] && onFile(e.target.files[0])} />
+                    <span className="inline-flex items-center px-6 py-3 rounded-xl bg-gradient-primary text-white font-semibold cursor-pointer hover:opacity-90 transition shadow-glow">
+                      Browse files
+                    </span>
+                  </label>
+                </div>
+                {error && <p className="text-destructive text-sm animate-fade-in">{error}</p>}
+              </>
+            ) : (
+              <div className="animate-scale-in space-y-5">
+                <div className="mx-auto w-20 h-20 rounded-2xl bg-success/20 flex items-center justify-center">
+                  <CheckCircle2 className="w-10 h-10 text-success" />
+                </div>
+                <div className="glass rounded-xl p-4 flex items-center gap-3 max-w-md mx-auto">
+                  <div className="w-10 h-10 rounded-lg bg-gradient-primary flex items-center justify-center shrink-0">
+                    <FileText className="w-5 h-5 text-white" />
+                  </div>
+                  <div className="flex-1 text-left min-w-0">
+                    <div className="font-medium truncate">{file.name}</div>
+                    <div className="text-xs text-muted-foreground">{(file.size / 1024).toFixed(1)} KB</div>
+                  </div>
+                  <button onClick={() => setFile(null)} className="p-1 rounded hover:bg-secondary text-muted-foreground hover:text-foreground transition">
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+                <button onClick={() => nav('/job-level')}
+                  className="inline-flex items-center px-8 py-3 rounded-xl bg-gradient-primary text-white font-semibold shadow-glow hover:opacity-90 transition">
+                  Continue →
+                </button>
               </div>
-            ))}
+            )}
           </div>
-
-          <main className="space-y-4">
-            <UploadZone
-              onFileSelect={handleFileSelect}
-              onError={handleFileError}
-              disabled={false}
-            />
-
-            {selectedFile && <FilePreview file={selectedFile} />}
-            {validationError && <ErrorBanner message={validationError} />}
-
-            <button
-              onClick={handleContinue}
-              disabled={!selectedFile}
-              className={`w-full py-3.5 rounded-xl font-semibold text-base tracking-wide transition-all duration-200
-                ${selectedFile
-                  ? 'bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white hover:from-violet-500 hover:to-fuchsia-500 hover:shadow-lg hover:shadow-violet-500/25 active:scale-[0.98]'
-                  : 'bg-slate-800 text-slate-600 cursor-not-allowed'
-                }`}
-            >
-              Continue →
-            </button>
-          </main>
         </div>
-      </div>
-    </div>
+
+        <div className="grid grid-cols-3 gap-4 mt-10 text-center">
+          {[{ v: '30s', l: 'average scan' }, { v: '100%', l: 'private' }, { v: '0$', l: 'to start' }].map((s) => (
+            <div key={s.l} className="glass rounded-xl p-4">
+              <div className="font-display text-2xl font-bold gradient-text">{s.v}</div>
+              <div className="text-xs text-muted-foreground mt-1">{s.l}</div>
+            </div>
+          ))}
+        </div>
+      </section>
+    </PageShell>
   );
 }

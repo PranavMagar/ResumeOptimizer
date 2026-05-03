@@ -64,6 +64,10 @@ export function renderResult(
         clarity: 0,
       },
     },
+    keywords: {
+      matched: analysis?.matchedKeywords ?? [],
+      missing: analysis?.missingKeywords ?? [],
+    },
   };
 
   return apiResponse;
