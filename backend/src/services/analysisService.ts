@@ -13,8 +13,7 @@ export interface AnalysisOptions {
 
 const ALL_SECTIONS: SectionName[] = ['contact', 'summary', 'experience', 'education', 'skills'];
 
-const SECTION_PATTERNS: Record<SectionName, RegExp> = {
-  contact: /(\S+@\S+\.\S+)[\s\S]{0,400}(\(?\d{3}\)?[\s.-]\d{3}[\s.-]\d{4}|linkedin\.com)/i,
+const SECTION_PATTERNS: Record<Exclude<SectionName, 'contact'>, RegExp> = {
   summary: /^[\s]*\b(summary|professional\s+summary|objective|career\s+objective|profile|about\s+me)\b[\s]*[:\n]/im,
   experience: /^[\s]*\b(experience|work\s+experience|employment|work\s+history|professional\s+experience)\b[\s]*[:\n]/im,
   education: /^[\s]*\b(education|academic|degree|qualifications|university|college)\b[\s]*[:\n]/im,
@@ -82,7 +81,48 @@ const ROLE_KEYWORDS: Record<string, { core: string[]; optional: string[] }> = {
   },
 };
 
-// Strong action verbs for experience scoring
+// ── Contact extraction (content-based, not section-based) ────────────────────
+
+/**
+ * Scans the full resume text for contact details regardless of section headers.
+ * Handles resumes where contact info is in the header with no "Contact" label.
+ */
+function extractContactDetails(text: string): import('../types').ContactDetails {
+  // Email — RFC-compliant pattern
+  const emailMatch = text.match(/[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}/);
+  const email = emailMatch ? emailMatch[0] : undefined;
+
+  // Phone — handles +1 (555) 123-4567, 555-123-4567, +91 9876543210, etc.
+  const phoneMatch = text.match(/(\+?\d{1,3}[\s.\-]?)?(\(?\d{3}\)?[\s.\-]?\d{3}[\s.\-]?\d{4})/);
+  const rawPhone = phoneMatch ? phoneMatch[0].replace(/\s/g, '') : undefined;
+  // Validate: must have at least 10 digits
+  const phone = rawPhone && (rawPhone.replace(/\D/g, '').length >= 10) ? rawPhone : undefined;
+
+  // Professional links
+  const links: string[] = [];
+  const linkedInMatch = text.match(/linkedin\.com\/[^\s,)>"\]]+/i);
+  if (linkedInMatch) links.push('https://' + linkedInMatch[0].replace(/^https?:\/\//i, ''));
+
+  const githubMatch = text.match(/github\.com\/[^\s,)>"\]]+/i);
+  if (githubMatch) links.push('https://' + githubMatch[0].replace(/^https?:\/\//i, ''));
+
+  const leetcodeMatch = text.match(/leetcode\.com\/[^\s,)>"\]]+/i);
+  if (leetcodeMatch) links.push('https://' + leetcodeMatch[0].replace(/^https?:\/\//i, ''));
+
+  const portfolioMatch = text.match(/(?:portfolio|personal|website)[:\s]+https?:\/\/[^\s,)>"\]]+/i);
+  if (portfolioMatch) {
+    const urlPart = portfolioMatch[0].match(/https?:\/\/[^\s,)>"\]]+/i);
+    if (urlPart) links.push(urlPart[0]);
+  }
+
+  // Score: email=5, phone=5, at least 1 link=5, max 15
+  let score = 0;
+  if (email) score += 5;
+  if (phone) score += 5;
+  if (links.length > 0) score += 5;
+
+  return { email, phone, links, score };
+}
 const STRONG_VERBS = [
   'led', 'built', 'designed', 'developed', 'launched', 'shipped', 'architected',
   'increased', 'reduced', 'improved', 'optimized', 'scaled', 'delivered', 'managed',
@@ -111,27 +151,26 @@ interface SectionScoreResult {
 }
 
 function scoreContact(text: string): SectionScoreResult {
-  const lower = text.toLowerCase();
-  const hasEmail = /\S+@\S+\.\S+/.test(text);
-  const hasPhone = /\(?\d{3}\)?[\s.-]\d{3}[\s.-]\d{4}/.test(text);
-  const hasLinkedIn = /linkedin\.com/i.test(text);
-  const hasGitHub = /github\.com/i.test(text);
-  const hasLocation = /\b(new york|san francisco|london|remote|[a-z]+,\s*[a-z]{2})\b/i.test(text);
+  const details = extractContactDetails(text);
+  const { email, phone, links } = details;
+  const hasLinkedIn = links.some(l => l.includes('linkedin'));
+  const hasGitHub = links.some(l => l.includes('github'));
+  const hasLocation = /\b(new york|san francisco|london|remote|[a-z]{2,}[,\s]+[a-z]{2}\b)/i.test(text);
 
   let score = 0;
-  const notes: string[] = [];
+  const missing: string[] = [];
 
-  if (hasEmail) score += 35; else notes.push('no email');
-  if (hasPhone) score += 25; else notes.push('no phone');
-  if (hasLinkedIn) score += 20; else notes.push('no LinkedIn');
+  if (email) score += 35; else missing.push('email');
+  if (phone) score += 25; else missing.push('phone');
+  if (hasLinkedIn) score += 20; else missing.push('LinkedIn');
   if (hasGitHub) score += 10;
   if (hasLocation) score += 10;
 
   score = Math.min(100, score);
-  const status = score >= 75 ? 'good' : score >= 50 ? 'warn' : 'bad';
+  const status: 'good' | 'warn' | 'bad' = score >= 75 ? 'good' : score >= 50 ? 'warn' : 'bad';
   const note = score >= 75
-    ? `Complete (email, phone${hasLinkedIn ? ', LinkedIn' : ''})`
-    : `Missing: ${notes.join(', ')}`;
+    ? `Complete (${email ? 'email' : ''}${phone ? ', phone' : ''}${hasLinkedIn ? ', LinkedIn' : ''})`
+    : `Missing: ${missing.join(', ')}`;
 
   return { score, status, note };
 }
@@ -397,10 +436,21 @@ export async function analyzeText(text: string, options: AnalysisOptions = {}): 
 
   const { profession = 'other', targetRole = '', jobDescription = '' } = options;
 
-  // Section detection
+  // Section detection — contact is content-based, others are header-based
   const detectedSections: SectionName[] = [];
   const missingSections: SectionName[] = [];
-  for (const section of ALL_SECTIONS) {
+
+  // Contact: scan entire text for email/phone (no section header required)
+  const contactDetails = extractContactDetails(text);
+  if (contactDetails.email || contactDetails.phone) {
+    detectedSections.push('contact');
+  } else {
+    missingSections.push('contact');
+  }
+
+  // Other sections: require a section header
+  const otherSections: Exclude<SectionName, 'contact'>[] = ['summary', 'experience', 'education', 'skills'];
+  for (const section of otherSections) {
     if (SECTION_PATTERNS[section].test(text)) detectedSections.push(section);
     else missingSections.push(section);
   }
@@ -422,11 +472,20 @@ export async function analyzeText(text: string, options: AnalysisOptions = {}): 
   const issues: string[] = [];
   const suggestions: string[] = [];
 
-  // Missing sections
+  // Missing sections — use specific contact feedback
   for (const section of missingSections) {
     const label = section.charAt(0).toUpperCase() + section.slice(1);
-    issues.push(`${label} section is missing`);
-    suggestions.push(getSuggestionForMissingSection(section));
+    if (section === 'contact') {
+      const missing: string[] = [];
+      if (!contactDetails.email) missing.push('email address');
+      if (!contactDetails.phone) missing.push('phone number');
+      if (contactDetails.links.length === 0) missing.push('LinkedIn/GitHub profile');
+      issues.push(`Contact info incomplete — missing: ${missing.join(', ')}`);
+      suggestions.push('Add your email, phone number, and LinkedIn URL to the top of your resume');
+    } else {
+      issues.push(`${label} section is missing`);
+      suggestions.push(getSuggestionForMissingSection(section));
+    }
   }
 
   // Weak bullets
@@ -470,6 +529,7 @@ export async function analyzeText(text: string, options: AnalysisOptions = {}): 
     clarityIssues,
     matchedKeywords,
     missingKeywords,
+    contactDetails,
     issues,
     suggestions,
   };

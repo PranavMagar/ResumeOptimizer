@@ -13,6 +13,13 @@ export interface ParseResult {
 // Analysis_Service output
 export type SectionName = 'contact' | 'summary' | 'experience' | 'education' | 'skills';
 
+export interface ContactDetails {
+  email?: string;
+  phone?: string;
+  links: string[];
+  score: number; // 0–15 (email=5, phone=5, link=5)
+}
+
 export interface AnalysisResult {
   detectedSections: SectionName[];
   missingSections: SectionName[];
@@ -21,6 +28,7 @@ export interface AnalysisResult {
   clarityIssues: string[];     // sentences > 20 words
   matchedKeywords: string[];   // ATS keywords found in resume
   missingKeywords: string[];   // ATS keywords not found
+  contactDetails: ContactDetails;
   issues: string[];
   suggestions: string[];
 }

@@ -5,19 +5,35 @@ import {
 
 /**
  * Builds differentiated section scores based on actual content analysis.
- * Each section is evaluated on its own meaningful criteria.
+ * Contact uses content-based detection (email/phone/links), not section headers.
  */
 function buildSections(analysis: AnalysisResult, rawText: string, profession: string, targetRole: string) {
-  const { detectedSections, matchedKeywords } = analysis;
+  const { detectedSections, matchedKeywords, contactDetails } = analysis;
   const { core } = getRoleKeywords(profession, '');
 
+  // Contact: always score from contactDetails (content-based)
+  const contactScore = (() => {
+    const { email, phone, links } = contactDetails;
+    const hasLinkedIn = links.some(l => l.includes('linkedin'));
+    const hasGitHub = links.some(l => l.includes('github'));
+    const hasLocation = /\b(new york|san francisco|london|remote|[a-z]{2,}[,\s]+[a-z]{2}\b)/i.test(rawText);
+    let s = 0;
+    const missing: string[] = [];
+    if (email) s += 35; else missing.push('email');
+    if (phone) s += 25; else missing.push('phone');
+    if (hasLinkedIn) s += 20; else missing.push('LinkedIn');
+    if (hasGitHub) s += 10;
+    if (hasLocation) s += 10;
+    s = Math.min(100, s);
+    const status: 'good' | 'warn' | 'bad' = s >= 75 ? 'good' : s >= 50 ? 'warn' : 'bad';
+    const note = s >= 75
+      ? `Complete (${[email ? 'email' : '', phone ? 'phone' : '', hasLinkedIn ? 'LinkedIn' : ''].filter(Boolean).join(', ')})`
+      : `Missing: ${missing.join(', ')}`;
+    return { score: s, status, note };
+  })();
+
   return [
-    {
-      name: 'Contact',
-      ...(detectedSections.includes('contact')
-        ? scoreContact(rawText)
-        : { score: 0, status: 'bad' as const, note: 'Missing — add email, phone, LinkedIn' }),
-    },
+    { name: 'Contact', ...contactScore },
     {
       name: 'Summary',
       ...(detectedSections.includes('summary')
