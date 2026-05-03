@@ -42,6 +42,7 @@ export interface RewriteResult {
   rewrites: {
     summary?: string;
     experience?: string[];
+    coverLetter?: string;
   };
   aiError?: string;
 }
@@ -60,6 +61,7 @@ export interface ApiResponse {
   rewrites: {
     summary?: string;
     experience?: string[];
+    coverLetter?: string;
   };
   errors: string[];
   // Criteria breakdown for split-screen scorecard
@@ -80,5 +82,17 @@ export interface ApiResponse {
   keywords: {
     matched: string[];
     missing: string[];
+  };
+  sections: Array<{
+    name: string;
+    score: number;
+    status: 'good' | 'warn' | 'bad';
+    note: string;
+  }>;
+  readability: {
+    words: number;
+    bullets: number;
+    quantified: number;
+    readingTime: string;
   };
 }

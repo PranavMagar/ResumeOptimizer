@@ -6,33 +6,36 @@
 
 @layer base {
   :root {
-    --background: 240 20% 4%;
-    --foreground: 210 40% 98%;
-    --card: 240 18% 7%;
-    --card-foreground: 210 40% 98%;
-    --popover: 240 18% 7%;
-    --popover-foreground: 210 40% 98%;
-    --primary: 265 90% 66%;
+    --background: 220 30% 98%;
+    --foreground: 222 25% 12%;
+    --card: 0 0% 100%;
+    --card-foreground: 222 25% 12%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 25% 12%;
+    --primary: 222 80% 55%;
     --primary-foreground: 0 0% 100%;
-    --primary-glow: 280 95% 72%;
-    --secondary: 240 12% 14%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 240 10% 12%;
-    --muted-foreground: 240 5% 65%;
-    --accent: 190 95% 55%;
-    --accent-foreground: 240 20% 4%;
-    --success: 152 76% 50%;
-    --warning: 38 95% 60%;
-    --destructive: 0 84% 62%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 240 14% 16%;
-    --input: 240 14% 14%;
-    --ring: 265 90% 66%;
-    --radius: 1rem;
-    --gradient-primary: linear-gradient(135deg, hsl(265 90% 66%), hsl(190 95% 55%));
-    --shadow-glow: 0 0 60px hsl(265 90% 66% / 0.35);
-    --shadow-card: 0 20px 60px -20px hsl(240 30% 2% / 0.7);
-    --shadow-elevated: 0 30px 80px -20px hsl(265 90% 50% / 0.45);
+    --primary-glow: 222 90% 70%;
+    --secondary: 220 20% 95%;
+    --secondary-foreground: 222 25% 18%;
+    --muted: 220 20% 96%;
+    --muted-foreground: 220 10% 45%;
+    --accent: 168 70% 42%;
+    --accent-foreground: 0 0% 100%;
+    --success: 152 60% 42%;
+    --warning: 32 90% 50%;
+    --destructive: 0 75% 55%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 220 18% 90%;
+    --input: 220 18% 92%;
+    --ring: 222 80% 55%;
+    --radius: 0.875rem;
+    --gradient-primary: linear-gradient(135deg, hsl(222 80% 55%), hsl(168 70% 50%));
+    --gradient-hero: linear-gradient(135deg, hsl(222 90% 70% / 0.18) 0%, hsl(168 70% 60% / 0.18) 100%);
+    --shadow-sm: 0 1px 2px hsl(222 25% 12% / 0.04);
+    --shadow-card: 0 4px 24px -8px hsl(222 50% 30% / 0.08);
+    --shadow-elevated: 0 12px 40px -12px hsl(222 50% 30% / 0.18);
+    --shadow-glow: 0 8px 30px -8px hsl(222 80% 55% / 0.35);
+    --transition-smooth: cubic-bezier(0.22, 1, 0.36, 1);
   }
 }
 
@@ -43,23 +46,24 @@
     @apply bg-background text-foreground antialiased;
     font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
     background-image:
-      radial-gradient(circle at 15% 10%, hsl(265 90% 50% / 0.18), transparent 45%),
-      radial-gradient(circle at 85% 0%, hsl(190 95% 55% / 0.14), transparent 40%),
-      radial-gradient(circle at 50% 100%, hsl(220 90% 50% / 0.18), transparent 50%);
+      radial-gradient(circle at 10% 0%, hsl(222 90% 70% / 0.10), transparent 40%),
+      radial-gradient(circle at 95% 10%, hsl(168 70% 60% / 0.10), transparent 40%);
     background-attachment: fixed;
   }
-  ::selection { background: hsl(var(--primary) / 0.4); }
+  ::selection { background: hsl(var(--primary) / 0.18); }
 }
 
 @layer components {
-  .glass {
-    @apply bg-card/60 backdrop-blur-xl border border-white/10;
+  .surface {
+    @apply bg-card border border-border rounded-2xl;
     box-shadow: var(--shadow-card);
   }
-  .glass-strong {
-    @apply bg-card/80 backdrop-blur-2xl border border-white/10;
-    box-shadow: var(--shadow-elevated);
+  .surface-soft {
+    @apply bg-card/70 backdrop-blur-md border border-border/70 rounded-2xl;
   }
+  .glass { @apply surface; }
+  .glass-strong { @apply surface; box-shadow: var(--shadow-elevated); }
+
   .gradient-text {
     @apply bg-clip-text text-transparent;
     background-image: var(--gradient-primary);
@@ -73,22 +77,27 @@
     content: '';
     position: absolute;
     inset: 0;
-    padding: 1px;
+    padding: 1.5px;
     border-radius: inherit;
     background: var(--gradient-primary);
     -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
     -webkit-mask-composite: xor;
     mask-composite: exclude;
     pointer-events: none;
+    opacity: 0.7;
   }
   .grid-bg {
     background-image:
-      linear-gradient(hsl(var(--border) / 0.4) 1px, transparent 1px),
-      linear-gradient(90deg, hsl(var(--border) / 0.4) 1px, transparent 1px);
-    background-size: 40px 40px;
+      linear-gradient(hsl(var(--border) / 0.7) 1px, transparent 1px),
+      linear-gradient(90deg, hsl(var(--border) / 0.7) 1px, transparent 1px);
+    background-size: 32px 32px;
     mask-image: radial-gradient(ellipse at center, #000 30%, transparent 75%);
+  }
+  .chip {
+    @apply inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium border bg-card;
   }
   .bg-gradient-primary { background-image: var(--gradient-primary); }
   .shadow-glow { box-shadow: var(--shadow-glow); }
+  .shadow-card { box-shadow: var(--shadow-card); }
   .animate-pulse-glow { animation: pulse-glow 2s ease-out infinite; }
 }

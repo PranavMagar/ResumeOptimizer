@@ -22,10 +22,10 @@ export function JobLevelPage() {
     <PageShell>
       <section className="container max-w-5xl py-12 lg:py-20">
         <div className="text-center space-y-4 mb-12 animate-fade-in">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full glass text-xs">
-            <span className="w-2 h-2 rounded-full bg-accent animate-pulse" />
-            <span>Step 2 of 3 · Target seniority</span>
-          </div>
+          <span className="chip">
+            <span className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse" />
+            Step 3 of 4 · Seniority
+          </span>
           <h1 className="font-display text-4xl lg:text-5xl font-bold">
             Pick your <span className="gradient-text">target level</span>
           </h1>
@@ -64,7 +64,7 @@ export function JobLevelPage() {
         </div>
 
         <div className="flex items-center justify-between mt-10">
-          <button onClick={() => nav('/upload')} className="px-4 py-2 text-muted-foreground hover:text-foreground transition text-sm">← Back</button>
+          <button onClick={() => nav('/profession')} className="px-4 py-2 text-muted-foreground hover:text-foreground transition text-sm">← Back</button>
           <button onClick={() => nav('/analyzing')}
             className="px-8 py-3 rounded-xl bg-gradient-primary text-white font-semibold shadow-glow hover:opacity-90 transition">
             Analyze resume →

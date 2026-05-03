@@ -7,6 +7,7 @@ export interface ApiResponse {
   rewrites: {
     summary?: string;
     experience?: string[];
+    coverLetter?: string;
   };
   errors: string[];
   criteria: {

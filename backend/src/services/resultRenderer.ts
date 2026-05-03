@@ -1,5 +1,42 @@
 import { ScoreResult, AnalysisResult, RewriteResult, ServiceError, ApiResponse } from '../types';
 
+function buildSections(analysis: AnalysisResult) {
+  const ALL_SECTIONS = ['contact', 'summary', 'experience', 'education', 'skills'] as const;
+  return ALL_SECTIONS.map((s) => {
+    const detected = analysis.detectedSections.includes(s);
+    const score = detected ? 80 : 20;
+    const status: 'good' | 'warn' | 'bad' = detected ? 'good' : 'bad';
+    const note = detected ? 'Detected' : 'Missing — add this section';
+    return { name: s.charAt(0).toUpperCase() + s.slice(1), score, status, note };
+  });
+}
+
+function buildCoverLetter(summary?: string): string {
+  return `Dear Hiring Team,
+
+I'm excited to apply for this role. ${summary ? summary : 'With a strong background in my field, I am confident I can contribute meaningfully from day one.'}
+
+I take pride in pairing strong execution with measurable impact, and I'm drawn to the opportunity to grow alongside talented colleagues.
+
+I'd welcome the chance to discuss how my experience aligns with your needs. Thank you for your consideration.
+
+Sincerely,
+{Your Name}`;
+}
+
+function buildReadability(analysis: AnalysisResult) {
+  const bulletCount = analysis.weakBullets.length;
+  const clarityCount = analysis.clarityIssues.length;
+  const words = Math.max(200, bulletCount * 15 + clarityCount * 25 + analysis.detectedSections.length * 80);
+  const readingTime = words < 400 ? `${Math.max(15, Math.round((words / 400) * 60))} sec` : `${Math.round(words / 400)} min`;
+  return {
+    words,
+    bullets: bulletCount,
+    quantified: Math.max(0, Math.round(analysis.keywordDensityScore * 5)),
+    readingTime,
+  };
+}
+
 /**
  * Assembles the final API_Response from all upstream service outputs.
  *
@@ -42,13 +79,19 @@ export function renderResult(
   const responseIssues = analysis?.issues ?? [];
   const responseSuggestions = analysis?.suggestions ?? [];
   const responseRewrites = rewrites?.rewrites ?? {};
+  // Build cover letter from rewrites if not already present
+  const coverLetter = responseRewrites.coverLetter ?? buildCoverLetter(responseRewrites.summary);
 
   // ── Build the final ApiResponse ───────────────────────────────────────────
   const apiResponse: ApiResponse = {
     score: responseScore,
     issues: responseIssues,
     suggestions: responseSuggestions,
-    rewrites: responseRewrites,
+    rewrites: {
+      summary: responseRewrites.summary,
+      experience: responseRewrites.experience,
+      coverLetter,
+    },
     errors,
     criteria: {
       detectedSections: analysis?.detectedSections ?? [],
@@ -68,6 +111,8 @@ export function renderResult(
       matched: analysis?.matchedKeywords ?? [],
       missing: analysis?.missingKeywords ?? [],
     },
+    sections: analysis ? buildSections(analysis) : [],
+    readability: analysis ? buildReadability(analysis) : { words: 0, bullets: 0, quantified: 0, readingTime: '0 sec' },
   };
 
   return apiResponse;
